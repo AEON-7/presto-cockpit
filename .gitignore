@@ -1,0 +1,15 @@
+# Secrets — NEVER commit these
+.env
+secrets.json
+
+# Per-device images you upload (keep the dir, not the contents)
+images/*.jpg
+images/*.png
+images/*.gif
+!images/.gitkeep
+
+# Python / OS cruft
+__pycache__/
+*.pyc
+.DS_Store
+*.bak

@@ -1,0 +1,30 @@
+# Replace 'youruser' below with the Linux user that runs the OpenClaw CLI.
+[Unit]
+Description=OpenClaw LAN shim for Presto cockpit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=youruser
+Environment=OPENCLAW_BIN=/home/youruser/.npm-global/bin/openclaw
+Environment=SHIM_PORT=9787
+Environment=NO_COLOR=1
+# Refresh intervals — kept slow so the shim doesn't hammer the gateway with CLI
+# invocations. (Defaults in shim.py are faster: FAST=4, SLOW=30, CALL=3, etc.)
+Environment=FAST_REFRESH_S=60
+Environment=SLOW_REFRESH_S=300
+Environment=CALL_REFRESH_S=15
+Environment=VLLM_REFRESH_S=10
+Environment=PROC_REFRESH_S=15
+Environment=ACTIVITY_REFRESH_S=30
+# CPU cap so a degenerate state can't peg the box (16 cores). MUST stay generous:
+# at 50% (half a core) the CLI wait-loop gets starved and long calls (sessions
+# list ~18s) are misreported as timeouts, blanking the agent list. 400% = 4 cores.
+CPUQuota=400%
+ExecStart=/usr/bin/python3 /home/youruser/openclaw-shim/shim.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
