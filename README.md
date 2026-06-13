@@ -3,6 +3,7 @@
 *A physical, glanceable dashboard for a home AI/GPU lab — on a tiny touchscreen you
 can set on your desk.*
 
+[![☕ Tips — Support the work](https://img.shields.io/badge/%E2%98%95_Tips-Support_the_work-ff5e5b?style=flat)](#-support-the-work)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat)](LICENSE)
 
 Presto Cockpit turns a **Pimoroni Presto** (a 480×480 touchscreen running MicroPython)
@@ -170,6 +171,44 @@ Everything is driven by `.env` (→ `secrets.json` on the device). Hosts, poll i
 the crypto basket, LED brightness, and sea‑level pressure are all there. No secret ever
 lives in the code — see [`.env.example`](.env.example). `.env` and `secrets.json` are
 git‑ignored; keep them that way.
+
+## ☕ Support the work
+
+If this dashboard was useful — or you just like blinkenlights on your desk — tips are
+deeply appreciated and go straight toward more compute, more hardware, and more open
+releases. **Scan a QR with your wallet, or click any address below to copy.**
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <strong>₿ Bitcoin (BTC)</strong><br/>
+      <img src="assets/qr/btc.png" alt="BTC QR" width="200"/><br/>
+      <sub><code>bc1q09xmzn00q4z3c5raene0f3pzn9d9pvawfm0py4</code></sub>
+    </td>
+    <td align="center" width="50%">
+      <strong>Ξ Ethereum (ETH)</strong><br/>
+      <img src="assets/qr/eth.png" alt="ETH QR" width="200"/><br/>
+      <sub><code>0x1512667F6D61454ad531d2E45C0a5d1fd82D0500</code></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>◎ Solana (SOL)</strong><br/>
+      <img src="assets/qr/sol.png" alt="SOL QR" width="200"/><br/>
+      <sub><code>DgQsjHdAnT5PNLQTNpJdpLS3tYGpVcsHQCkpoiAKsw8t</code></sub>
+    </td>
+    <td align="center" width="50%">
+      <strong>ⓜ Monero (XMR)</strong><br/>
+      <img src="assets/qr/xmr.png" alt="XMR QR" width="200"/><br/>
+      <sub><code>836XrSKw4R76vNi3QPJ5Fa9ugcyvE2cWmKSPv3AhpTNNKvqP8v5ba9JRL4Vh7UnFNjDz3E2GXZDVVenu3rkZaNdUFhjAvgd</code></sub>
+    </td>
+  </tr>
+</table>
+
+> **Ethereum L2s (Base, Arbitrum, Optimism, Polygon, etc.) and EVM‑compatible tokens**
+> can be sent to the same Ethereum address.
+
+---
 
 ## License
 
