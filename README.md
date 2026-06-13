@@ -35,6 +35,23 @@ environment, clock, and news screens work with no backend at all.
 
 ---
 
+## Gallery
+
+A few of the eight screens running on the actual hardware:
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screens/openclaw.jpg" alt="OpenClaw agents screen"/><br/><sub><b>OpenClaw</b> — every agent's live gen tok/s, sessions, context, and idle/active state, plus a 7d/30d/1y token‑usage ledger. Tap a row for session detail.</sub></td>
+    <td width="50%" align="center"><img src="docs/screens/dgx.jpg" alt="DGX Spark screen"/><br/><sub><b>DGX</b> — GPU temp/util/power, CPU + RAM bars, network, the running containers, and per‑model tok/s. Fed by the <code>dgx-vitals</code> sidecar.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screens/resources.jpg" alt="Resources screen"/><br/><sub><b>Resources</b> — the gateway host's CPU + RAM donut gauges and a ranked list of the top process consumers.</sub></td>
+    <td width="50%" align="center"><img src="docs/screens/clock.jpg" alt="Word-clock screen"/><br/><sub><b>Clock</b> — a QlockTwo‑style word grid that lights up the words for the current time.</sub></td>
+  </tr>
+</table>
+
+---
+
 ## Build list
 
 Everything connects over the Presto's **Qw/ST (Qwiic / STEMMA QT) I²C** bus — no
