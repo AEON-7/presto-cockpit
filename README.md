@@ -35,16 +35,37 @@ environment, clock, and news screens work with no backend at all.
 
 ---
 
-## Hardware
+## Build list
 
-| Part | Role |
-|---|---|
-| **Pimoroni Presto** | 480×480 IPS touchscreen, RP2350, 7 rear RGB LEDs, WiFi, runs MicroPython |
-| **Multi‑Sensor Stick** (Qw/ST) | BME280 (temp / humidity / pressure) + LTR559 (ambient light) + LSM6DS3 (IMU) |
-| **Qw/ST Pad** (addr `0x21`) | physical L/R buttons to flip screens (touch also works) |
+Everything connects over the Presto's **Qw/ST (Qwiic / STEMMA QT) I²C** bus — no
+soldering, just plug‑in cables. Prices are approximate; check the vendor.
 
-The sensor stick and pad daisy‑chain on the Presto's Qwic/STEMMA‑QT I²C bus — no
-soldering. Everything else is optional.
+### Required — the cockpit itself
+| Part | What it's for | Notes |
+|---|---|---|
+| **[Pimoroni Presto](https://shop.pimoroni.com/products/presto)** | the whole dashboard runs here | 4″ 480×480 capacitive touch, RP2350B, 7‑zone RGB backlight, 2.4 GHz WiFi (RM2/CYW43439), microSD, piezo, USB‑C; ships pre‑flashed with MicroPython. **~£60** standalone (or **~£90** Starter Kit with stand + cables). |
+| **USB‑C cable** | flashing + power | any data‑capable USB‑C cable |
+
+That alone runs the no‑backend screens (Clock, Crypto, News).
+
+### Recommended — sensors + physical nav
+| Part | Adds | Notes |
+|---|---|---|
+| **[Multi‑Sensor Stick](https://shop.pimoroni.com/products/multi-sensor-stick)** (PIM745) | the **Environment** screen + LED auto‑dim | BME280 (temp/humidity/pressure, `0x76`) + LTR559 (light, `0x23`) + LSM6DS3 (IMU). Qw/ST at both ends. **~£12** |
+| **[Qw/ST Pad](https://shop.pimoroni.com/products/qwst-pad)** | physical **L/R** screen flipping | 8‑button I²C gamepad (touch works without it). Address‑configurable; this build expects **`0x21`**. **~£10** |
+| **Qw/ST cable(s)** | daisy‑chain the above | Qwiic / STEMMA‑QT cables; the stick has a connector at each end, so chain Presto → stick → pad |
+
+> The Presto **Starter Kit** bundles the stand + cables and is the simplest single purchase.
+
+### Backends — tested hosts, but adaptable
+The two backend services were **developed and tested on the hardware below — but the
+Pimoroni Presto is the only hard requirement.** Swap in your own GPU box, inference
+server, or agent stack as long as it can expose the same kind of metrics.
+
+| Backend | Tested on | Feeds | Adapt it to… |
+|---|---|---|---|
+| `dgx-vitals` | an **NVIDIA DGX Spark** (GB10) | the **DGX** screen | **any Linux + Docker host.** It always reports CPU / RAM / network + running containers; GPU fields populate whenever NVML is present (any NVIDIA card), and per‑model **tok/s** comes from any vLLM‑style Prometheus `/metrics` endpoint you point it at (`VLLM_METRICS_URLS`). No GPU? It still serves everything else. |
+| `openclaw-shim` | an **[OpenClaw](https://github.com/openclaw/openclaw) gateway** | the **OpenClaw** + **Resources** screens | **any agent stack — or none.** The screens only consume the shim's `/agents` JSON shape, so you can point them at any service that emits the same shape, or adapt `shim.py`'s "shell a CLI → digest → serve JSON" pattern to your own framework. |
 
 ---
 

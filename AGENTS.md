@@ -45,6 +45,12 @@ screens need no backend. The **DGX** screen needs ENV B. The **OpenClaw** and
 
 ## 1. Information to collect before you start
 
+> **Hardware prerequisite:** a **Pimoroni Presto** is the only required piece (add the
+> Multi‑Sensor Stick + Qw/ST Pad for the sensor/nav features) — see the **Build list** in
+> the [README](README.md). The two backends below were developed and tested on an NVIDIA
+> **DGX Spark** (`dgx-vitals`) and an **OpenClaw gateway** (`openclaw-shim`), but both
+> adapt to any host that can expose the same kind of metrics.
+
 | Need | For | Example |
 |---|---|---|
 | WiFi SSID + password + 2‑letter country code | the Presto to get online | `MyNet` / `…` / `US` |
