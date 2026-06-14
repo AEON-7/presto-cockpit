@@ -68,6 +68,19 @@ class RandomScreen(Screen):
                 return
         self._roll()
 
+    def on_pad(self, key):
+        # Works without the touchscreen: any action button rolls; U/D pick the mode.
+        if key in ("A", "B", "X", "Y"):
+            self._roll()
+        elif key == "U":
+            self._mode = (self._mode - 1) % len(MODES)
+            self._result = None
+            self._anim_until = 0
+        elif key == "D":
+            self._mode = (self._mode + 1) % len(MODES)
+            self._result = None
+            self._anim_until = 0
+
     def _roll(self):
         rng = self._rng()
         if rng is None:
@@ -143,7 +156,7 @@ class RandomScreen(Screen):
             return
 
         if self._result is None and not animating:
-            self._ctext(d, "TAP TO " + ("FLIP" if mode == "COIN" else "ROLL"),
+            self._ctext(d, "PRESS A TO " + ("FLIP" if mode == "COIN" else "ROLL"),
                         3, cx, cy - 12, p["accent"])
             return
 
@@ -217,4 +230,4 @@ class RandomScreen(Screen):
         d.set_pen(p["dim"])
         src = rng.sources if rng else "-"
         d.text("entropy: {} - {}".format("ARMED" if ready else "warming up", src), bx, H - 28, W, 1)
-        d.text("tap to roll  -  tap a mode to switch", bx, H - 16, W, 1)
+        d.text("A = roll / flip      U / D = change mode", bx, H - 16, W, 1)

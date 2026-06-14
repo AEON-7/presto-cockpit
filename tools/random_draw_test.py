@@ -67,4 +67,14 @@ for m in range(4):
 before = scr._mode
 scr.on_touch(scr._chips[1][0] + 2, scr._chips[1][1] + 2)   # tap a chip
 print("chip tap: mode %d -> %d" % (before, scr._mode))
+
+# pad controls (work without the touchscreen)
+scr._mode = 0
+scr.on_pad("D"); assert scr._mode == 1, scr._mode
+scr.on_pad("D"); assert scr._mode == 2, scr._mode
+scr.on_pad("U"); assert scr._mode == 1, scr._mode
+scr._result = None
+scr.on_pad("A"); assert scr._result is not None, "A should roll"
+scr.draw()                                   # render after a pad roll
+print("PAD CONTROLS OK  (A -> %s, mode cycling works)" % (scr._result,))
 print("DRAW TEST OK")

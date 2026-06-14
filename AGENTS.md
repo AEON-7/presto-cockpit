@@ -197,6 +197,7 @@ mpremote connect <DEV-PORT> run tools/boottest.py
 | A screen shows "no url" | that backend URL is blank in `.env` | set it and re‑run `./deploy.sh` |
 | WiFi won't join | wrong SSID/country, or 5 GHz‑only AP | check `WIFI_*` in `.env`; the Presto is 2.4 GHz |
 | Environment screen empty | sensor stick not detected on I²C | reseat the Qw/ST cable; check the stick address |
+| Touch does nothing (taps ignored) | touch controller (FT6236) not answering on its I²C bus — an empty bus scan / `OSError 5` on every read, usually a wedged controller or flex‑cable | **full power‑cycle** the Presto (unplug USB‑C, not just soft‑reset); meanwhile drive it with the **Qw/ST pad** — every screen is pad‑navigable (`L`/`R` move screens, `A` selects/rolls, `U`/`D` move within a screen) |
 | Nothing deploys | `mpremote` not found / wrong port | `pip3 install --user mpremote`; set `PRESTO_DEV=/dev/tty…` |
 
 Backend logs are the fastest signal:
