@@ -22,7 +22,7 @@ Three environments cooperate. You deploy to each one independently.
  ───────────────────────────────────────          ────────────────────────────────────────
  • RP2350, 480x480 touch, 7 RGB LEDs, WiFi          • dgx-vitals container (this repo)
  • boots → reads /secrets.json → joins WiFi          • --network host --pid=host --gpus all
- • app/app.py poll loop renders 8 screens            • reads NVML + psutil + docker.sock
+ • app/app.py poll loop renders 9 screens            • reads NVML + psutil + docker.sock
  • polls backend URLs over HTTP every 1–2 s          • scrapes vLLM/ASR :8000/:8001 /metrics
  • I2C: BME280 + LTR559 + LSM6DS3 + nav pad          • serves  GET :9876/vitals
         │                                                     ▲
@@ -56,6 +56,7 @@ screens need no backend. The **DGX** screen needs ENV B. The **OpenClaw** and
 | WiFi SSID + password + 2‑letter country code | the Presto to get online | `MyNet` / `…` / `US` |
 | `GPU_HOST` address | DGX screen | `10.0.0.10` or `gpu.local` |
 | `GATEWAY_HOST` address | OpenClaw + Resources screens | `10.0.0.20` |
+| Uptime Kuma host + API key (optional) | Kuma screen | `http://10.0.0.30:3001/metrics` + a key from Kuma → Settings → API Keys |
 | vLLM / ASR Prometheus URLs (optional) | per‑model tok/s on the DGX screen | `http://localhost:8000/metrics` |
 | A Presto on USB‑C + `mpremote` on `DEV` | flashing | `pip3 install --user mpremote` |
 | SSH to `GPU_HOST` / `GATEWAY_HOST` | deploying the backends | `youruser@10.0.0.10` |

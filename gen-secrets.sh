@@ -53,6 +53,11 @@ data = {
         "bearer": g("OPENCLAW_BEARER", ""),
         "poll_interval_s": fl("OPENCLAW_POLL_S", 2.0),
     },
+    "kuma": {
+        "url": g("KUMA_URL", ""),
+        "api_key": g("KUMA_API_KEY", ""),
+        "poll_interval_s": fl("KUMA_POLL_S", 10),
+    },
     "crypto": {
         "ids": [c.strip() for c in g("CRYPTO_IDS", "bitcoin,ethereum,monero,solana").split(",") if c.strip()],
         "vs": g("CRYPTO_VS", "usd"),

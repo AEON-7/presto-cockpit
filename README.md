@@ -26,7 +26,7 @@ It's two small **backends** feeding one little **screen**:
                                    ▼   (WiFi, polled every 1–2 s)
                         ┌─────────────────────────┐
                         │   Pimoroni Presto       │  480×480 touch · RP2350
-                        │   8 swipeable screens   │  + 7 rear RGB LEDs
+                        │   9 swipeable screens   │  + 7 rear RGB LEDs
                         │   + sensor stick        │  + Qw/ST nav pad
                         └─────────────────────────┘
 ```
@@ -38,7 +38,7 @@ environment, clock, and news screens work with no backend at all.
 
 ## Gallery
 
-A few of the eight screens running on the actual hardware:
+A few of the nine screens running on the actual hardware:
 
 <table>
   <tr>
@@ -96,11 +96,12 @@ Swipe (touch) or press **L/R** on the pad to move between them. Default rotation
 | **DGX** | Your GPU box: GPU name/temp/util/power, CPU load, RAM, a list of running containers, and live **tok/s + prompt‑prefill tok/s** per model. Fed by `dgx-vitals`. |
 | **OpenClaw** | Every AI agent on your OpenClaw gateway: live **gen tok/s**, ingest rate, sessions, context size, "working"/"on‑call" state, and a 7d/30d/1y **token‑usage** ledger. Tap an agent for a session detail view. Fed by `openclaw-shim`. |
 | **Resources** | The gateway host itself: CPU + RAM **donut gauges** and a ranked list of the top process consumers (chat gateway, per‑agent voice sidecars, browser, …). Fed by `openclaw-shim`. |
+| **Kuma** | Live [Uptime Kuma](https://github.com/louislam/uptime-kuma) status — each monitor's up/down dot, response time, an `N/M up` / `X DOWN` header (down‑first), and an on‑device reliability %. Scrapes Kuma's Prometheus `/metrics` with an API key. |
 | **News** | Trending AI/tech headlines (Hacker News front page, filtered). No backend or key needed. |
 | **Crypto** | Live prices for a configurable basket (default BTC / ETH / XMR / SOL) via the free CoinGecko API. |
 | **Environment** | Room temperature, humidity, and barometric pressure from the BME280, plus ambient light (lux). |
 | **Clock** | A full‑screen **QlockTwo‑style word grid** that spells out the time, synced over NTP. |
-| **Settings** | On‑device view of the current config (hosts, poll intervals, brightness) and LED controls. |
+| **Settings** | Live status of every feed, plus a **brightness** control (`+`/`−`, applied to both the panel backlight and the rear LEDs) and an **auto‑dim** toggle. Brightness defaults to a fixed 100% and persists to `secrets.json`. |
 
 Also in the tree but **not in the default rotation** (kept for reference / re‑enable in
 `app/app.py`'s `SCREENS_ORDER`): an **altitude / artificial‑horizon** screen (pressure +

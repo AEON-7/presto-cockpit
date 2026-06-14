@@ -16,7 +16,7 @@ class Leds:
             presto.auto_ambient_leds(False)
         except Exception:
             pass
-        self.brightness = 0.6
+        self.brightness = 1.0
         self.mode = "solid"
         self.color = (0, 0, 0)
         self.cols = [(0, 0, 0)] * NUM_LEDS

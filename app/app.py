@@ -8,10 +8,10 @@ from app.hw.sensors import Sensors
 from app.hw.pad import Pad
 from app.hw.leds import Leds
 from app.state import State
-from app.net import dgx as net_dgx, openclaw as net_oc, crypto as net_crypto, news as net_news
+from app.net import dgx as net_dgx, openclaw as net_oc, crypto as net_crypto, news as net_news, kuma as net_kuma
 
 
-SCREENS_ORDER = ["dgx", "openclaw", "resources", "news", "crypto", "env", "clock", "settings"]
+SCREENS_ORDER = ["dgx", "openclaw", "resources", "kuma", "news", "crypto", "env", "clock", "settings"]
 
 
 class Ctx:
@@ -40,6 +40,9 @@ class App:
         self.W, self.H = self.display.get_bounds()
 
         self.state = State()
+        _lights = self.secrets.get("lights", {})
+        self.state.brightness = float(_lights.get("default_brightness", 1.0))
+        self.state.auto_dim = bool(_lights.get("auto_dim_from_ambient", False))
 
         self._splash("starting...")
         wifi_ok = self._wifi()
@@ -59,8 +62,9 @@ class App:
 
         self.ctx = Ctx(self.presto, self.display, self.state, self.secrets,
                        self.leds, self.sensors, self.pad)
+        self.ctx.app = self          # screens reach back for brightness control + persistence
 
-        self._last_poll = {"dgx": 0, "openclaw": 0, "news": 0, "crypto": 0, "sensors": 0}
+        self._last_poll = {"dgx": 0, "openclaw": 0, "kuma": 0, "news": 0, "crypto": 0, "sensors": 0}
         self.screens = self._load_screens()
         self.idx = 0
         self._enter(self.idx)
@@ -147,6 +151,7 @@ class App:
         from app.screens.dgx_screen import DGXScreen
         from app.screens.openclaw_screen import OpenClawScreen
         from app.screens.resources_screen import ResourcesScreen
+        from app.screens.kuma_screen import KumaScreen
         from app.screens.news_screen import NewsScreen
         from app.screens.crypto_screen import CryptoScreen
         from app.screens.env_screen import EnvScreen
@@ -156,6 +161,7 @@ class App:
             DGXScreen(self.ctx),
             OpenClawScreen(self.ctx),
             ResourcesScreen(self.ctx),
+            KumaScreen(self.ctx),
             NewsScreen(self.ctx),
             CryptoScreen(self.ctx),
             EnvScreen(self.ctx),
@@ -217,6 +223,29 @@ class App:
                 self._last_poll["openclaw"] = now
                 return
 
+        if "kuma" in active:
+            k_cfg = secrets.get("kuma") or {}
+            interval = k_cfg.get("poll_interval_s", 10.0)
+            if s.kuma_err:
+                interval = max(interval, 20.0)
+            if k_cfg.get("url") and now - self._last_poll["kuma"] >= interval:
+                data, err = net_kuma.fetch(k_cfg["url"], k_cfg.get("api_key"))
+                if err:
+                    s.kuma_err = err          # keep last-good monitors on a transient hiccup
+                else:
+                    s.kuma, s.kuma_err, s.kuma_ts = data, None, now
+                    roll = s.kuma_roll        # accumulate since-boot reliability per monitor
+                    for m in data:
+                        e = roll.get(m["name"])
+                        if e is None:
+                            e = [0, 0]
+                            roll[m["name"]] = e
+                        e[1] += 1
+                        if m["up"] == 1:
+                            e[0] += 1
+                self._last_poll["kuma"] = now
+                return
+
         if "news" in active:
             # public HN endpoint, no secret needed; refresh every ~5 min
             if now - self._last_poll["news"] >= 300.0:
@@ -267,29 +296,56 @@ class App:
             elif key == "R":
                 self._nav(1)
             elif key == "+":
-                self.leds.set_brightness(min(1.0, self.leds.brightness + 0.1))
+                self._adjust_brightness(0.1)
             elif key == "-":
-                self.leds.set_brightness(max(0.0, self.leds.brightness - 0.1))
+                self._adjust_brightness(-0.1)
             else:
                 screen.on_pad(key)
 
-    def _auto_dim(self):
-        lights = self.secrets.get("lights", {})
-        if not lights.get("auto_dim_from_ambient", True):
-            self._set_backlight(1.0)
+    def _apply_brightness(self):
+        # No ambient auto-dim by default: pin BOTH the panel backlight and the rear
+        # LEDs to ONE fixed value (state.brightness) so neither varies or drops out.
+        # The Settings screen and the +/- pad keys adjust + persist that value.
+        if self.state.auto_dim:
+            # Optional ambient auto-dim (LTR559). The sensor here reads ~0/noisy, so
+            # below a real indoor level we just hold the fixed value rather than flicker.
+            lux = self.state.sensors.get("lux")
+            if not lux or lux < 8:
+                b = self.state.brightness
+            else:
+                b = max(0.08, min(1.0, lux / 250.0)) * self.state.brightness
+            self.leds.set_brightness(b)
+            self._set_backlight(max(0.4, b))
             return
-        default_b = lights.get("default_brightness", 0.6)
-        lux = self.state.sensors.get("lux")
-        # LTR559 here is unreliable (reads ~0 / noisy). Treat anything below a real
-        # indoor level as "no usable reading" so sensor noise can't toggle branches
-        # and flicker the panel; hold a readable backlight instead of dimming.
-        if not lux or lux < 8:
-            self.leds.set_brightness(default_b)
-            self._set_backlight(1.0)
-            return
-        b = max(0.08, min(1.0, lux / 250.0))
-        self.leds.set_brightness(b * default_b)
-        self._set_backlight(max(0.5, min(1.0, lux / 400.0)))
+        self.leds.set_brightness(self.state.brightness)
+        self._set_backlight(self.state.brightness)
+
+    def _adjust_brightness(self, delta):
+        self.state.brightness = max(0.1, min(1.0, round(self.state.brightness + delta, 2)))
+        self.state.auto_dim = False          # a manual change implies fixed mode
+        self._save_lights()
+
+    def set_auto_dim(self, on):
+        self.state.auto_dim = bool(on)
+        self._save_lights()
+
+    def _save_lights(self):
+        # Persist brightness + auto_dim to /secrets.json so they survive reboot.
+        try:
+            import json
+            try:
+                with open("/secrets.json") as f:
+                    cfg = json.load(f)
+            except Exception:
+                cfg = {}
+            cfg.setdefault("lights", {})
+            cfg["lights"]["default_brightness"] = self.state.brightness
+            cfg["lights"]["auto_dim_from_ambient"] = self.state.auto_dim
+            with open("/secrets.json", "w") as f:
+                json.dump(cfg, f)
+            self.secrets = cfg
+        except Exception as e:  # noqa: BLE001
+            print("save lights err:", e)
 
     def _set_backlight(self, value):
         # Calling set_backlight every frame visibly flickers the panel; only touch
@@ -335,7 +391,7 @@ class App:
             t0 = time.ticks_ms()
             # Each pre-draw step is isolated: a transient I2C/touch/network hiccup
             # must never crash the loop and leave an illuminated-black screen.
-            for step in (self._input, self._maybe_poll, self._auto_dim, self._wifi_tick):
+            for step in (self._input, self._maybe_poll, self._apply_brightness, self._wifi_tick):
                 try:
                     step()
                 except Exception as e:  # noqa: BLE001

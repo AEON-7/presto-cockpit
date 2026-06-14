@@ -8,6 +8,12 @@ class State:
         self.wifi_rssi = None
         self.time_synced = False
 
+        # Display + rear-LED brightness. Fixed by default (no ambient auto-dim);
+        # adjustable from the Settings screen and the +/- pad keys, persisted to
+        # secrets.json. auto_dim re-enables the (optional) ambient light sensor.
+        self.brightness = 1.0
+        self.auto_dim = False
+
         self.dgx = None
         self.dgx_err = None
         self.dgx_ts = 0
@@ -26,6 +32,14 @@ class State:
         self.crypto = {}
         self.crypto_err = None
         self.crypto_ts = 0
+
+        # Uptime Kuma: live monitor status from the Prometheus /metrics endpoint.
+        # kuma = [{name, up, response_ms}, ...]; kuma_roll tracks since-boot
+        # reliability per monitor as [up_polls, total_polls].
+        self.kuma = []
+        self.kuma_err = None
+        self.kuma_ts = 0
+        self.kuma_roll = {}
 
         self.sensors = {
             "temp_c": None, "humidity": None, "pressure_hpa": None,
