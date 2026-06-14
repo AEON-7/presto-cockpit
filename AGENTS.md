@@ -22,7 +22,7 @@ Three environments cooperate. You deploy to each one independently.
  ───────────────────────────────────────          ────────────────────────────────────────
  • RP2350, 480x480 touch, 7 RGB LEDs, WiFi          • dgx-vitals container (this repo)
  • boots → reads /secrets.json → joins WiFi          • --network host --pid=host --gpus all
- • app/app.py poll loop renders 9 screens            • reads NVML + psutil + docker.sock
+ • app/app.py poll loop renders 10 screens           • reads NVML + psutil + docker.sock
  • polls backend URLs over HTTP every 1–2 s          • scrapes vLLM/ASR :8000/:8001 /metrics
  • I2C: BME280 + LTR559 + LSM6DS3 + nav pad          • serves  GET :9876/vitals
         │                                                     ▲
@@ -180,6 +180,8 @@ mpremote connect <DEV-PORT> run tools/boottest.py
 [ ] DGX screen shows GPU/CPU/mem/containers                     (ENV B reachable)
 [ ] OpenClaw screen lists your agents                           (ENV C reachable)
 [ ] Resources screen shows the gateway host donuts              (ENV C reachable)
+[ ] Kuma screen lists your monitors up/down                     (Kuma reachable)
+[ ] Random screen flips a coin / rolls dice                     (no backend; needs the sensor stick for entropy)
 [ ] rear LEDs glow the current screen's accent color
 [ ] L/R on the pad (or touch) flips screens
 ```

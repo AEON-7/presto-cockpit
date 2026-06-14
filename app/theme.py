@@ -12,6 +12,7 @@ ACCENTS = {
     "env":      (0x4d, 0xc9, 0xb0),   # teal
     "altitude": (0x56, 0x9f, 0xc9),   # sky blue
     "news":     (0x9b, 0x6d, 0xff),   # indigo / violet
+    "random":   (0xff, 0x6f, 0xd5),   # entropy magenta
     "lights":   (0xff, 0xff, 0xff),   # white, gets overridden by image sampler
     "clock":    (0xe0, 0xe0, 0xe0),   # near-white
     "settings": (0x90, 0x90, 0xb0),   # muted lavender

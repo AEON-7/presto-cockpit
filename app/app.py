@@ -8,10 +8,11 @@ from app.hw.sensors import Sensors
 from app.hw.pad import Pad
 from app.hw.leds import Leds
 from app.state import State
+from app.rng import EntropyPool
 from app.net import dgx as net_dgx, openclaw as net_oc, crypto as net_crypto, news as net_news, kuma as net_kuma
 
 
-SCREENS_ORDER = ["dgx", "openclaw", "resources", "kuma", "news", "crypto", "env", "clock", "settings"]
+SCREENS_ORDER = ["dgx", "openclaw", "resources", "kuma", "news", "crypto", "env", "clock", "random", "settings"]
 
 
 class Ctx:
@@ -59,10 +60,12 @@ class App:
         self.sensors = Sensors()
         self.pad = Pad(self.sensors.i2c if self.sensors.i2c else i2c)
         self.leds = Leds(self.presto)
+        self.rng = EntropyPool()     # seeded continuously from raw sensor noise (see _maybe_poll)
 
         self.ctx = Ctx(self.presto, self.display, self.state, self.secrets,
                        self.leds, self.sensors, self.pad)
         self.ctx.app = self          # screens reach back for brightness control + persistence
+        self.ctx.rng = self.rng      # the Random screen draws coin/dice from this pool
 
         self._last_poll = {"dgx": 0, "openclaw": 0, "kuma": 0, "news": 0, "crypto": 0, "sensors": 0}
         self.screens = self._load_screens()
@@ -156,6 +159,7 @@ class App:
         from app.screens.crypto_screen import CryptoScreen
         from app.screens.env_screen import EnvScreen
         from app.screens.clock_screen import ClockScreen
+        from app.screens.random_screen import RandomScreen
         from app.screens.settings_screen import SettingsScreen
         return [
             DGXScreen(self.ctx),
@@ -166,6 +170,7 @@ class App:
             CryptoScreen(self.ctx),
             EnvScreen(self.ctx),
             ClockScreen(self.ctx),
+            RandomScreen(self.ctx),
             SettingsScreen(self.ctx),
         ]
 
@@ -270,6 +275,7 @@ class App:
 
         if now - self._last_poll["sensors"] >= 0.1:
             self.state.sensors_ok = self.sensors.read(self.state.sensors)
+            self.rng.stir(self.state.sensors)   # harvest physical noise into the entropy pool
             self._last_poll["sensors"] = now
 
     def _input(self):

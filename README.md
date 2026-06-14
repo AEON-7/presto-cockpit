@@ -26,7 +26,7 @@ It's two small **backends** feeding one little **screen**:
                                    ▼   (WiFi, polled every 1–2 s)
                         ┌─────────────────────────┐
                         │   Pimoroni Presto       │  480×480 touch · RP2350
-                        │   9 swipeable screens   │  + 7 rear RGB LEDs
+                        │  10 swipeable screens   │  + 7 rear RGB LEDs
                         │   + sensor stick        │  + Qw/ST nav pad
                         └─────────────────────────┘
 ```
@@ -38,7 +38,7 @@ environment, clock, and news screens work with no backend at all.
 
 ## Gallery
 
-A few of the nine screens running on the actual hardware:
+A few of the ten screens running on the actual hardware:
 
 <table>
   <tr>
@@ -101,6 +101,7 @@ Swipe (touch) or press **L/R** on the pad to move between them. Default rotation
 | **Crypto** | Live prices for a configurable basket (default BTC / ETH / XMR / SOL) via the free CoinGecko API. |
 | **Environment** | Room temperature, humidity, and barometric pressure from the BME280, plus ambient light (lux). |
 | **Clock** | A full‑screen **QlockTwo‑style word grid** that spells out the time, synced over NTP. |
+| **Random** | True‑random **coin flip + dice** (d6 / d20 / 2d6). Every result is drawn from an entropy pool the device continuously stirs from **raw sensor noise** (IMU + barometer + light) plus each tap's exact microsecond — a genuine hardware TRNG, not `random()`. No backend or key needed. |
 | **Settings** | Live status of every feed, plus a **brightness** control (`+`/`−`, applied to both the panel backlight and the rear LEDs) and an **auto‑dim** toggle. Brightness defaults to a fixed 100% and persists to `secrets.json`. |
 
 Also in the tree but **not in the default rotation** (kept for reference / re‑enable in
