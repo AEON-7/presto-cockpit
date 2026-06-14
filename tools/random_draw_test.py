@@ -43,7 +43,8 @@ ctx = Obj()
 ctx.display = FakeDisplay()
 ctx.W, ctx.H = 480, 480
 ctx.state = Obj()
-ctx.state.sensors = {"ax": 0.1, "gz": -0.2, "temp_c": 24.3, "pressure_hpa": 1009.3, "lux": 0, "prox": 3}
+ctx.state.sensors = {"ax": 0.1, "ay": 0.0, "az": 1.0, "gz": -0.2,
+                     "temp_c": 24.3, "pressure_hpa": 1009.3, "lux": 0, "prox": 3}
 ctx.rng = EntropyPool()
 
 scr = RandomScreen(ctx)
@@ -77,4 +78,18 @@ scr._result = None
 scr.on_pad("A"); assert scr._result is not None, "A should roll"
 scr.draw()                                   # render after a pad roll
 print("PAD CONTROLS OK  (A -> %s, mode cycling works)" % (scr._result,))
+
+# shake-to-roll (device-scale |accel|: rest ~17340, shake swings far from it)
+ctx.state.sensors["ax"], ctx.state.sensors["ay"], ctx.state.sensors["az"] = 0.0, 0.0, 17340.0
+scr._g = None
+scr._result = None
+scr._shake_last = 0
+scr._anim_until = 0
+for _ in range(10):
+    scr._update(ctx.rng)                     # at rest: must NOT roll
+assert scr._result is None, "rolled while at rest!"
+ctx.state.sensors["az"] = 7000.0             # |a| collapses -> big deviation = a shake
+scr._update(ctx.rng)
+assert scr._result is not None, "shake did not roll"
+print("SHAKE-TO-ROLL OK  (rest quiet, shake -> %s)" % (scr._result,))
 print("DRAW TEST OK")

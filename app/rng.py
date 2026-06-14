@@ -30,29 +30,40 @@ class EntropyPool:
         self.sources = "-"
 
     def stir(self, sensors):
-        """Fold one sensor sample's noisy low bits + read-time jitter into the pool."""
+        """Fold one sensor sample's noise into the pool, maximizing harvested entropy.
+
+        Each value is scaled up so its noisy sub-unit jitter lands in integer bits,
+        then the FULL 64-bit pattern is folded in (not truncated) and rotated so the
+        high bits aren't lost. The IMU prefers raw (un-smoothed) readings, which carry
+        far more noise than the EMA-filtered ones used for display."""
         try:
             bits = time.ticks_us() & _MASK64
         except Exception:
             bits = 0
         tags = 0
-        for k in ("ax", "ay", "az", "gx", "gy", "gz"):          # IMU thermal/electronic noise
-            v = sensors.get(k)
-            if v:
-                bits = (bits ^ (int(v * 1000000.0) & 0xFFFFFFFF)) & _MASK64
-                bits = ((bits << 7) | (bits >> 57)) & _MASK64
-                tags |= 1
-        for k in ("temp_c", "humidity", "pressure_hpa"):         # barometer LSB jitter
+        imu = (("ax_r", "ay_r", "az_r", "gx_r", "gy_r", "gz_r")
+               if sensors.get("ax_r") is not None
+               else ("ax", "ay", "az", "gx", "gy", "gz"))
+        for k in imu:                                            # IMU thermal/electronic noise (amplified)
             v = sensors.get(k)
             if v is not None:
-                bits = (bits ^ (int(v * 1000.0) & 0xFFFF)) & _MASK64
-                bits = ((bits << 5) | (bits >> 59)) & _MASK64
+                iv = int(v * 1000000.0) & _MASK64
+                bits = (bits ^ iv) & _MASK64
+                bits = ((bits << 13) | (bits >> 51)) & _MASK64
+                tags |= 1
+        for k, sc in (("temp_c", 1e7), ("humidity", 1e6), ("pressure_hpa", 1e6)):
+            v = sensors.get(k)                                   # barometer LSB jitter (full width)
+            if v is not None:
+                iv = int(v * sc) & _MASK64
+                bits = (bits ^ iv) & _MASK64
+                bits = ((bits << 11) | (bits >> 53)) & _MASK64
                 tags |= 2
         for k in ("lux", "prox"):                                # light/proximity noise
             v = sensors.get(k)
             if v is not None:
-                bits = (bits ^ (int(v) & 0xFFFF)) & _MASK64
-                bits = ((bits << 3) | (bits >> 61)) & _MASK64
+                iv = int(v * 1000.0) & _MASK64
+                bits = (bits ^ iv) & _MASK64
+                bits = ((bits << 7) | (bits >> 57)) & _MASK64
                 tags |= 4
         self._state = _mix64((self._state ^ bits) & _MASK64)
         self._samples += 1

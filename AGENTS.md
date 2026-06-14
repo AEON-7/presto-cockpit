@@ -181,7 +181,7 @@ mpremote connect <DEV-PORT> run tools/boottest.py
 [ ] OpenClaw screen lists your agents                           (ENV C reachable)
 [ ] Resources screen shows the gateway host donuts              (ENV C reachable)
 [ ] Kuma screen lists your monitors up/down                     (Kuma reachable)
-[ ] Random screen flips a coin / rolls dice                     (no backend; needs the sensor stick for entropy)
+[ ] Random screen: coin/dice via pad A, tap, or a shake         (no backend; sensor stick = entropy + the thing you shake)
 [ ] rear LEDs glow the current screen's accent color
 [ ] L/R on the pad (or touch) flips screens
 ```

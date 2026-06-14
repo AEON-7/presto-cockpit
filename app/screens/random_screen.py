@@ -5,11 +5,30 @@ from app import theme
 
 MODES = ["COIN", "D6", "D20", "2D6"]
 
+# Shake-to-roll: trigger on |accel| deviation from a slow gravity baseline.
+# Calibrated on this device: rest deviation < 50, a hard shake reaches ~9700.
+SHAKE_THRESHOLD = 2500.0
+SHAKE_COOLDOWN_MS = 600
+
+# Layout
+RESULT_CY = 196
+R_CIRCLE = 78
+DIE_S = 162
+TWO_S = 124
+LABEL_Y = RESULT_CY + R_CIRCLE + 6
+COUNTS_Y = 300
+FEED_Y = 322
+FEED_H = 30
+HEX_Y = FEED_Y + FEED_H + 8
+STATE_Y = 384
+HINT_Y = 402
+
 
 class RandomScreen(Screen):
-    """Coin flip + dice roll, with every result drawn from the EntropyPool that the
-    app continuously stirs from raw sensor noise (IMU + barometer + light) plus the
-    exact microsecond of each tap. True-ish random, physically sourced."""
+    """Coin flip + dice roll, every result drawn from the EntropyPool the app stirs
+    from raw sensor noise. Roll with the pad (A), a tap, or a physical shake. Two
+    live "random data feed" animations (a scrolling bar stream + a hex stream) are
+    pulled straight from the whitened pool so you can watch the randomness flow."""
 
     name = "random"
     accent = theme.ACCENTS["random"]
@@ -23,6 +42,14 @@ class RandomScreen(Screen):
         self._result = None
         self._anim_until = 0
         self._counts = {}              # "COIN" -> {"H","T"}; others -> recent list
+        # shake detection
+        self._g = None
+        self._shake_last = 0
+        # animated feeds
+        self._bars = []
+        self._hexs = ""
+        self._nbars = 64
+        self._nhex = 34
 
     def _ensure(self):
         if self._pens is not None:
@@ -31,6 +58,7 @@ class RandomScreen(Screen):
         self._pens = {
             "bg": d.create_pen(*theme.BG),
             "panel": d.create_pen(*theme.PANEL),
+            "panel_hi": d.create_pen(*theme.PANEL_HI),
             "text": d.create_pen(*theme.TEXT),
             "dim": d.create_pen(*theme.TEXT_DIM),
             "accent": d.create_pen(*self.accent),
@@ -40,6 +68,8 @@ class RandomScreen(Screen):
         W = self.ctx.W
         cw = (W - 24) // 4
         self._chips = [(12 + i * cw, 70, cw - 6, 36) for i in range(4)]
+        self._nbars = (W - 32) // 6
+        self._nhex = (W - 36) // 12
 
     def _rng(self):
         return getattr(self.ctx, "rng", None)
@@ -85,7 +115,7 @@ class RandomScreen(Screen):
         rng = self._rng()
         if rng is None:
             return
-        try:                            # fold the tap's exact microsecond (human jitter) in
+        try:                            # fold the trigger's exact microsecond (human jitter) in
             rng.stir(self.ctx.state.sensors)
         except Exception:
             pass
@@ -115,6 +145,30 @@ class RandomScreen(Screen):
         if len(h) > 8:
             del h[0]
 
+    # ---- per-frame update: shake detection + feed the animated streams ----
+    def _update(self, rng):
+        s = self.ctx.state.sensors
+        ax, ay, az = s.get("ax"), s.get("ay"), s.get("az")
+        if ax is not None and ay is not None and az is not None:
+            mag = (ax * ax + ay * ay + az * az) ** 0.5
+            if self._g is None:
+                self._g = mag
+            dev = mag - self._g
+            if dev < 0:
+                dev = -dev
+            self._g += (mag - self._g) * 0.05         # slow gravity tracking
+            now = time.ticks_ms()
+            if (dev > SHAKE_THRESHOLD and rng is not None and rng.ready()
+                    and time.ticks_diff(self._anim_until, now) <= 0
+                    and time.ticks_diff(now, self._shake_last) > SHAKE_COOLDOWN_MS):
+                self._shake_last = now
+                self._roll()
+        if rng is not None and rng.ready():
+            self._bars.append(rng.bits(8) / 255.0)
+            if len(self._bars) > self._nbars:
+                del self._bars[0]
+            self._hexs = (self._hexs + "0123456789ABCDEF"[rng.bits(4)])[-self._nhex:]
+
     # ---- draw ------------------------------------------------------------
     def draw(self):
         self._ensure()
@@ -122,18 +176,19 @@ class RandomScreen(Screen):
         W, H = self.ctx.W, self.ctx.H
         p = self._pens
         rng = self._rng()
+        self._update(rng)
 
         d.set_pen(p["bg"])
         d.clear()
         d.set_pen(p["accent"])
-        d.text("RANDOM", 16, 14, W, 3)
+        d.text("RANDOM", 16, 12, W, 3)
         d.set_pen(p["dim"])
-        d.text("true random from live sensor noise", 16, 48, W, 1)
+        d.text("true random from live sensor noise", 16, 44, W, 1)
 
         self._draw_chips(d, p)
-
         animating = time.ticks_diff(self._anim_until, time.ticks_ms()) > 0
         self._draw_result(d, p, rng, animating)
+        self._draw_feeds(d, p, rng)
         self._draw_footer(d, p, rng)
 
     def _draw_chips(self, d, p):
@@ -146,8 +201,7 @@ class RandomScreen(Screen):
 
     def _draw_result(self, d, p, rng, animating):
         cx = self.ctx.W // 2
-        cy = 238
-        R = 90
+        cy = RESULT_CY
         mode = MODES[self._mode]
 
         if rng is None or not rng.ready():
@@ -156,37 +210,36 @@ class RandomScreen(Screen):
             return
 
         if self._result is None and not animating:
-            self._ctext(d, "PRESS A TO " + ("FLIP" if mode == "COIN" else "ROLL"),
-                        3, cx, cy - 12, p["accent"])
+            self._ctext(d, "PRESS A OR SHAKE", 3, cx, cy - 26, p["accent"])
+            self._ctext(d, "TO " + ("FLIP" if mode == "COIN" else "ROLL"), 2, cx, cy + 12, p["dim"])
             return
 
         if mode == "COIN":
             v = ("H" if rng.bits(1) == 0 else "T") if animating else self._result
             d.set_pen(p["accent"])
-            d.circle(cx, cy, R)
+            d.circle(cx, cy, R_CIRCLE)
             self._ctext_mid(d, v, 9, cx, cy, p["bg"])
             if not animating:
-                self._ctext(d, "HEADS" if v == "H" else "TAILS", 3, cx, cy + R + 8, p["accent"])
+                self._ctext(d, "HEADS" if v == "H" else "TAILS", 2, cx, LABEL_Y, p["accent"])
         elif mode == "D6":
             v = (rng.randbelow(6) + 1) if animating else self._result
-            self._die_face(d, p, v, cx - 90, cy - 90, 180)
+            self._die_face(d, p, v, cx - DIE_S // 2, cy - DIE_S // 2, DIE_S)
         elif mode == "D20":
             v = (rng.randbelow(20) + 1) if animating else self._result
             d.set_pen(p["accent"])
-            d.circle(cx, cy, R)
+            d.circle(cx, cy, R_CIRCLE)
             self._ctext_mid(d, str(v), 9, cx, cy, p["bg"])
             if not animating:
-                self._ctext(d, "d20", 2, cx, cy + R + 10, p["accent"])
+                self._ctext(d, "d20", 2, cx, LABEL_Y, p["accent"])
         elif mode == "2D6":
             if animating:
                 a, b = rng.randbelow(6) + 1, rng.randbelow(6) + 1
             else:
                 a, b = self._result
-            s = 132
-            self._die_face(d, p, a, cx - s - 8, cy - s // 2, s)
-            self._die_face(d, p, b, cx + 8, cy - s // 2, s)
+            self._die_face(d, p, a, cx - TWO_S - 8, cy - TWO_S // 2, TWO_S)
+            self._die_face(d, p, b, cx + 8, cy - TWO_S // 2, TWO_S)
             if not animating:
-                self._ctext(d, "= {}".format(a + b), 4, cx, cy + s // 2 + 14, p["accent"])
+                self._ctext(d, "= {}".format(a + b), 2, cx, LABEL_Y, p["accent"])
 
     def _die_face(self, d, p, n, fx, fy, s):
         d.set_pen(p["accent"])                       # colored border
@@ -208,26 +261,35 @@ class RandomScreen(Screen):
         for px, py in layout:
             d.circle(int(px), int(py), int(r))
 
+    def _draw_feeds(self, d, p, rng):
+        # Two live views of the whitened entropy stream, redrawn every frame.
+        W = self.ctx.W
+        ready = bool(rng and rng.ready())
+        d.set_pen(p["panel"])
+        d.rectangle(16, FEED_Y, W - 32, FEED_H)
+        d.set_pen(p["accent"] if ready else p["dim"])
+        for i, v in enumerate(self._bars):           # scrolling random-bar stream
+            h = int(FEED_H * v)
+            if h < 1:
+                h = 1
+            d.rectangle(16 + i * 6, FEED_Y + (FEED_H - h), 5, h)
+        d.set_pen(p["dim"])                           # scrolling hex stream
+        d.text(self._hexs, 16, HEX_Y, W, 2)
+
     def _draw_footer(self, d, p, rng):
-        W, H = self.ctx.W, self.ctx.H
+        W = self.ctx.W
         cx = W // 2
         mode = MODES[self._mode]
         if mode == "COIN":
             c = self._counts.get("COIN", {"H": 0, "T": 0})
-            txt = "H {}   T {}   ({} flips)".format(c["H"], c["T"], c["H"] + c["T"])
+            txt = "H %d   T %d   (%d flips)" % (c["H"], c["T"], c["H"] + c["T"])
         else:
             h = self._counts.get(mode, [])
             txt = "last:  " + ("  ".join(str(x) for x in h) if h else "-")
-        self._ctext(d, txt, 2, cx, H - 92, p["dim"])
+        self._ctext(d, txt, 2, cx, COUNTS_Y, p["dim"])
 
-        bx, bw, by = 16, W - 32, H - 44
-        d.set_pen(p["panel"])
-        d.rectangle(bx, by, bw, 12)
-        f = rng.fill() if rng else 0.0
         ready = bool(rng and rng.ready())
-        d.set_pen(p["accent"] if ready else p["warn"])
-        d.rectangle(bx, by, int(bw * f), 12)
-        d.set_pen(p["dim"])
         src = rng.sources if rng else "-"
-        d.text("entropy: {} - {}".format("ARMED" if ready else "warming up", src), bx, H - 28, W, 1)
-        d.text("A = roll / flip      U / D = change mode", bx, H - 16, W, 1)
+        d.set_pen(p["dim"])
+        d.text("entropy: %s - %s" % ("ARMED" if ready else "warming up", src), 16, STATE_Y, W, 1)
+        d.text("A = roll/flip    U/D = mode    or shake it", 16, HINT_Y, W, 1)

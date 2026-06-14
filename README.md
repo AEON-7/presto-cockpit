@@ -101,7 +101,7 @@ Swipe (touch) or press **L/R** on the pad to move between them. Default rotation
 | **Crypto** | Live prices for a configurable basket (default BTC / ETH / XMR / SOL) via the free CoinGecko API. |
 | **Environment** | Room temperature, humidity, and barometric pressure from the BME280, plus ambient light (lux). |
 | **Clock** | A full‑screen **QlockTwo‑style word grid** that spells out the time, synced over NTP. |
-| **Random** | True‑random **coin flip + dice** (d6 / d20 / 2d6). Every result is drawn from an entropy pool the device continuously stirs from **raw sensor noise** (IMU + barometer + light) plus the exact microsecond of each roll — a genuine hardware TRNG, not `random()`. Roll with **A** on the nav pad (or tap); **U**/**D** switch mode. No backend or key needed. |
+| **Random** | True‑random **coin flip + dice** (d6 / d20 / 2d6) — a real hardware **TRNG**, not `random()`. Every result is drawn from an entropy pool the device continuously stirs from **raw, un‑smoothed sensor noise** (IMU + barometer + light, scaled to amplify the low‑bit jitter) plus the exact microsecond of each roll. Two live **random‑data‑feed** animations (a scrolling bar stream + a hex stream) show the whitened output flowing. Roll with **A** on the pad, a tap, or a **shake** — the IMU lives on the sensor stick, so that's the bit you shake. **U**/**D** switch mode. No backend or key needed. |
 | **Settings** | Live status of every feed, plus a **brightness** control (`+`/`−`, applied to both the panel backlight and the rear LEDs) and an **auto‑dim** toggle. Brightness defaults to a fixed 100% and persists to `secrets.json`. |
 
 Also in the tree but **not in the default rotation** (kept for reference / re‑enable in

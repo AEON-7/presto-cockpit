@@ -59,6 +59,10 @@ class Sensors:
         if self.ok_imu:
             try:
                 ax, ay, az, gx, gy, gz = self.imu.get_readings()
+                # Raw, UN-smoothed readings: these still carry the full sensor noise
+                # and are what the entropy pool harvests (see app/rng.py).
+                dst["ax_r"], dst["ay_r"], dst["az_r"] = ax, ay, az
+                dst["gx_r"], dst["gy_r"], dst["gz_r"] = gx, gy, gz
                 if self._smooth is None:
                     self._smooth = [ax, ay, az, gx, gy, gz]
                 a = 0.2
